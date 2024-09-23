@@ -1,34 +1,25 @@
 pipeline {
     agent {
-        docker {
-            image 'node:16'
-        }
+        docker { image 'node:16' }
     }
     stages {
-        stage('Install dependencies') {
+        stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh 'npm install --save'
             }
         }
-        stage('Run tests') {
+        stage('Snyk Security Scan') {
+            steps {
+                withCredentials([string(credentialsId: 'snyk_api_token', variable: 'SNYK_TOKEN')]) {
+                    sh 'npx snyk auth $SNYK_TOKEN'
+                    sh 'npx snyk test'
+                }
+            }
+        }
+        stage('Test') {
             steps {
                 sh 'npm test'
             }
         }
-        stage('Build') {
-            steps {
-                sh 'npm run build'
-            }
-        }
-        stage('Security Scan') {
-            steps {
-                // Inject Snyk API token from Jenkins credentials
-                withCredentials([string(credentialsId: 'snyk_api_token', variable: 'SNYK_TOKEN')]) {
-                    // Run Snyk security test on package.json
-                    sh 'npx snyk test --file=package.json --severity-threshold=high'
-                }
-            }
-        }
     }
 }
-
